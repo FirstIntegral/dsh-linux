@@ -8,6 +8,8 @@ Not affiliated with, endorsed by, or maintained by DeepSeek. This is not an offi
 
 The shell is Electron. It boots the published `web` profile of `@deepseek-ai/dsh` and does not fork the harness. Sessions are the same `~/.dsh` profile as a terminal `dsh web`. Provider keys stay in the harness credential file. This window does not read that file.
 
+<img src="docs/screenshot.png" width="900" alt="dsh-linux open on a new session">
+
 ## Install
 
 Node 24 or newer. This package is not published to npm. Clone it.
