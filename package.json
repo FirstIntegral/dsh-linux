@@ -1,0 +1,23 @@
+{
+  "name": "dsh-linux",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Unofficial Linux desktop built on DeepSeek Harness. Not an official port.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "src/main.mjs",
+  "bin": {
+    "dsh-linux": "bin/dsh-linux"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test src/ready.test.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "electron": "44.9.1"
+  }
+}

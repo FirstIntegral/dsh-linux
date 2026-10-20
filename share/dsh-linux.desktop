@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=dsh-linux
+GenericName=Agent desktop
+Comment=Unofficial Linux desktop built on DeepSeek Harness
+Exec=dsh-linux
+Terminal=false
+Categories=Development;
+StartupWMClass=dsh-linux
+StartupNotify=true

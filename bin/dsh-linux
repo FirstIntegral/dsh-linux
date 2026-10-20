@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Launch the dsh-linux Electron shell from this checkout.
+set -euo pipefail
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+if [[ ! -x "$root/node_modules/.bin/electron" ]]; then
+  echo "dsh-linux: dependencies missing. From $root run: npm install" >&2
+  exit 1
+fi
+if [[ ! -f "$root/node_modules/@deepseek-ai/dsh/package.json" ]]; then
+  echo "dsh-linux: @deepseek-ai/dsh is not installed. From $root run: npm install" >&2
+  exit 1
+fi
+
+# Electron treats the first non-switch as the app path, so a bare `--port 3081`
+# must follow the checkout. Ozone and GPU switches must precede it.
+electron_args=()
+app_args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ozone-platform|--ozone-platform-hint|--user-data-dir|--proxy-server)
+      electron_args+=("$1")
+      if [[ $# -ge 2 && "$2" != --* ]]; then
+        shift
+        electron_args+=("$1")
+      fi
+      ;;
+    --ozone-platform=*|--ozone-platform-hint=*|--user-data-dir=*|--proxy-server=*|--disable-gpu|--enable-gpu|--disable-gpu-sandbox)
+      electron_args+=("$1")
+      ;;
+    *)
+      app_args+=("$1")
+      ;;
+  esac
+  shift
+done
+
+exec "$root/node_modules/.bin/electron" "${electron_args[@]}" "$root" "${app_args[@]}"

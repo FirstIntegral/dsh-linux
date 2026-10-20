@@ -15,3 +15,8 @@ docs/session-flushes/
 
 # Lean paper artifacts (opt-in docs/paper/lean/)
 docs/paper/lean/.lake/
+
+# Shell dependencies and local runtime. The harness is not vendored.
+node_modules/
+dist/
+.runtime/

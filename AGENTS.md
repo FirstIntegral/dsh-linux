@@ -2,11 +2,11 @@
 
 ## Overview
 
-Unofficial Linux desktop for DeepSeek Harness. Not affiliated with, endorsed by, or maintained by DeepSeek. "Built on DeepSeek Harness" is the relationship. The product name stays `dsh-linux`. No application code yet.
+Unofficial Linux desktop for DeepSeek Harness. Not affiliated with, endorsed by, or maintained by DeepSeek. "Built on DeepSeek Harness" is the relationship. The product name stays `dsh-linux`.
 
 ## Stack / Conventions
 
-The desktop shell is not chosen. The harness stays upstream: [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness), MIT, copyright DeepSeek. Do not vendor or patch that tree until a boot path is chosen.
+Electron 44 shell (`src/main.mjs`) around the published npm package `@deepseek-ai/dsh` (pinned `0.2.1-rc.2`). Boot profile is `web`, with `--no-open`. The harness stays upstream: [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness), MIT, copyright DeepSeek. Do not vendor that tree. Do not patch it so `dev:desktop` runs here — that launcher rejects `linux-x64` (`docs/BOOT.md`). Our code is MIT (`LICENSE`). No official DeepSeek logos.
 
 Naming follows DeepSeek's published brand guidelines (`BRAND_GUIDELINES.md` in that repo):
 
@@ -16,9 +16,9 @@ Naming follows DeepSeek's published brand guidelines (`BRAND_GUIDELINES.md` in t
 
 ## Commands
 
-- Build: none yet
-- Test: none yet
-- Run: none yet
+- Install: `npm install` (Node >= 24; this machine has Node 26)
+- Test: `npm test` (pure helpers in `src/ready.mjs`; no Electron)
+- Run: `bin/dsh-linux` (`--port` or `DSH_LINUX_PORT`, default 3080)
 
 ## Repo
 
