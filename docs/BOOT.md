@@ -40,7 +40,7 @@ npm install
 bin/dsh-linux
 ```
 
-Electron 38 and newer already opens a Wayland window when `XDG_SESSION_TYPE=wayland`. This Omarchy box is that case, on the NVIDIA card. A black window: quit, then `bin/dsh-linux --ozone-platform=x11`. `--disable-gpu` is the step after that, not the default. Node must be 24 or newer. This machine's Node 26 is inside the harness engine range (`^22.19.0 || >=24`). The published CLI package does not declare `engines`. The range lives on the private repo root.
+Electron 38 and newer already opens a Wayland window when `XDG_SESSION_TYPE=wayland`. On NVIDIA, a black window is the fallback case: quit, then `bin/dsh-linux --ozone-platform=x11`. `--disable-gpu` is the step after that, not the default. Node must be 24 or newer. The harness repo root allows `^22.19.0 || >=24`. The published CLI package does not declare `engines`.
 
 ## Menu
 

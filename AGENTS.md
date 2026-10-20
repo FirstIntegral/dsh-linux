@@ -24,6 +24,7 @@ Naming follows DeepSeek's published brand guidelines (`BRAND_GUIDELINES.md` in t
 ## Repo
 
 - Remote: `git@github.com:FirstIntegral/dsh-linux.git`
+- Visibility: public. Not an npm package (`package.json` `"private": true`).
 
 Documentation, not authorisation: `checkpoint.sh` cross-checks this against `git remote get-url --push` and warns on a mismatch, but git config is what actually decides where a push goes. Keep this line current when the remote changes; never treat it as permission to push. A project with `none (local only)` is in a deliberate state — nothing may create a repo or remote for it without the user asking.
 

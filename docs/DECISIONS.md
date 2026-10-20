@@ -25,3 +25,8 @@ Append an entry (date + decision + why + rejected alternatives) in the same turn
 - The main window may navigate only to the harness origin. `window.open('about:blank')` stays inside a sandboxed popup so account sign-in can `location.replace` the authorize URL. Other `http:` and `https:` opens go to the system browser. `javascript:`, `file:`, and `data:` are refused. Rejected leaving the old rule that allowed any `https:` navigation of the main window: that lets a page replace the app with a lookalike while the title still says `dsh-linux`.
 - Clipboard read, camera, and display capture stay denied. Microphone, notifications, and fullscreen stay allowed on the loopback origin so voice and the app chrome keep working. Paste still uses the normal edit menu path, which does not need clipboard-read.
 - No AppImage. The shell needs system Node and the user's harness home. Bundling the harness into an image would vendor it, which this project does not do. The menu entry from `bin/install-desktop.sh` is the install. The icon is an original ring mark, not a DeepSeek logo.
+
+## 2026-10-20 The repo is public, the icon stays the ring
+
+- GitHub visibility becomes public at the user's request. A scan of the tree and history found no provider keys, only the redaction tests. `package.json` stays `"private": true`, so this is not an npm publish.
+- The icon stays the original dark tile, amber ring, and cream bead. Upstream's own badge, in `@deepseek-ai/dsh-skill-badge`, is a blue pill (`#4D6BFE`) with the letters dsh. Copying that art was rejected. The ring is not a stand-in for their logo, and it does not need to be.
