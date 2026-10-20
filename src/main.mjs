@@ -1,14 +1,25 @@
-import { app, BrowserWindow, dialog, session } from 'electron'
+import { app, BrowserWindow, dialog, session, shell } from 'electron'
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { allowMainNavigation, allowPopupNavigation, classifyOpen } from './nav.mjs'
 import { isLoopbackUrl, parsePort, parseReadyLine, redact, stripTokenQuery } from './ready.mjs'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const READY_MS = 180_000
 const TERM_MS = 6_000
+const LOOPBACK_PERMISSIONS = new Set([
+  'notifications',
+  'fullscreen',
+  'clipboard-sanitized-write',
+  'pointer-lock',
+  'pointerLock',
+])
+
+// Crash dumps can contain page text and header values. Keep them off the network.
+app.commandLine.appendSwitch('disable-crash-reporter')
 
 app.setName('dsh-linux')
 app.setPath('userData', path.join(homedir(), '.local', 'share', 'dsh-linux'))
@@ -37,6 +48,11 @@ const tail = []
 /** @type {ReturnType<typeof setTimeout> | null} */
 let readyTimer = null
 
+function iconFile() {
+  const candidate = path.join(projectRoot, 'share', 'icons', 'dsh-linux.png')
+  return existsSync(candidate) ? candidate : undefined
+}
+
 function remember(line) {
   const safe = redact(line)
   tail.push(safe)
@@ -57,6 +73,7 @@ function dshBin() {
 function childEnv() {
   const env = { ...process.env }
   // process.execPath inside Electron is the Electron binary. The child must be Node.
+  // Provider keys in the environment stay. The harness reads them. This process does not print them.
   delete env.ELECTRON_RUN_AS_NODE
   for (const key of Object.keys(env)) {
     if (key.startsWith('ELECTRON_')) delete env[key]
@@ -90,6 +107,122 @@ function showFailure(message) {
   })
 }
 
+function guestOptions() {
+  return {
+    parent: window ?? undefined,
+    title: 'dsh-linux',
+    autoHideMenuBar: true,
+    icon: iconFile(),
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+    },
+  }
+}
+
+function openExternal(target) {
+  let url
+  try {
+    url = new URL(target)
+  } catch {
+    return
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:' && url.protocol !== 'mailto:') return
+  void shell.openExternal(url.href)
+}
+
+/**
+ * @param {import('electron').WebContents} contents
+ * @param {'main' | 'popup'} role
+ */
+function harden(contents, role) {
+  contents.setWindowOpenHandler(({ url: target }) => {
+    const decision = classifyOpen(target)
+    if (decision === 'external') {
+      openExternal(target)
+      return { action: 'deny' }
+    }
+    if (decision !== 'internal') return { action: 'deny' }
+    // about:blank is the sign-in preopen. The page then location.replace's it.
+    if (!isBlank(target) && !allowPopupNavigation(target)) return { action: 'deny' }
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: guestOptions(),
+    }
+  })
+  contents.on('will-navigate', (event, target) => {
+    if (!navigationAllowed(role, target)) event.preventDefault()
+  })
+  contents.on('will-redirect', (event, target) => {
+    if (!navigationAllowed(role, target)) event.preventDefault()
+  })
+  contents.on('did-create-window', (child) => {
+    child.setTitle('dsh-linux')
+    harden(child.webContents, 'popup')
+  })
+  if (role === 'main') {
+    let clearedToken = false
+    contents.on('did-navigate', (_event, url) => {
+      if (clearedToken) return
+      try {
+        if (new URL(url).searchParams.has('token')) return
+      } catch {
+        return
+      }
+      contents.clearHistory()
+      clearedToken = true
+    })
+  }
+}
+
+function isBlank(target) {
+  return target === '' || target === 'about:blank' || target === 'about:blank/'
+}
+
+function navigationAllowed(role, target) {
+  if (role === 'popup') return allowPopupNavigation(target)
+  if (readyOrigin === null) return false
+  return allowMainNavigation(target, readyOrigin)
+}
+
+function permissionAllowed(permission, requestingUrl, mediaTypes) {
+  let onApp = false
+  try {
+    onApp = isLoopbackUrl(requestingUrl)
+      || (readyOrigin !== null && new URL(requestingUrl).origin === readyOrigin)
+  } catch {
+    onApp = false
+  }
+  if (!onApp) return false
+  if (permission === 'media') {
+    return mediaTypes.length > 0 && mediaTypes.every((type) => type === 'audio')
+  }
+  return LOOPBACK_PERMISSIONS.has(permission)
+}
+
+function installSessionGuards() {
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    const types = Array.isArray(details.mediaTypes) ? details.mediaTypes : []
+    callback(permissionAllowed(permission, details.requestingUrl || webContents.getURL(), types))
+  })
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    const types = Array.isArray(details?.mediaTypes) ? details.mediaTypes : []
+    const url = requestingOrigin || webContents?.getURL() || ''
+    return permissionAllowed(permission, url, types)
+  })
+  // Credential query params must not ride out as Referer.
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const headers = { ...details.requestHeaders }
+    for (const name of Object.keys(headers)) {
+      if (name.toLowerCase() !== 'referer') continue
+      headers[name] = stripTokenQuery(headers[name])
+    }
+    callback({ requestHeaders: headers })
+  })
+}
+
 function openWindow(url) {
   if (window !== null) {
     void window.loadURL(url)
@@ -102,54 +235,15 @@ function openWindow(url) {
     title: 'dsh-linux',
     backgroundColor: '#111111',
     autoHideMenuBar: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-    },
+    icon: iconFile(),
+    webPreferences: guestOptions().webPreferences,
   })
   window.removeMenu()
   window.on('page-title-updated', (event) => {
     event.preventDefault()
     window?.setTitle('dsh-linux')
   })
-  window.webContents.setWindowOpenHandler(({ url: target }) => {
-    if (!isLoopbackUrl(target)) {
-      try {
-        const parsed = new URL(target)
-        if (parsed.protocol !== 'https:') return { action: 'deny' }
-      } catch {
-        return { action: 'deny' }
-      }
-    }
-    return {
-      action: 'allow',
-      overrideBrowserWindowOptions: {
-        parent: window ?? undefined,
-        title: 'dsh-linux',
-        autoHideMenuBar: true,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          sandbox: true,
-          webSecurity: true,
-        },
-      },
-    }
-  })
-  window.webContents.on('will-navigate', (event, target) => {
-    let parsed
-    try {
-      parsed = new URL(target)
-    } catch {
-      event.preventDefault()
-      return
-    }
-    if (parsed.origin === readyOrigin) return
-    if (parsed.protocol === 'https:') return
-    event.preventDefault()
-  })
+  harden(window.webContents, 'main')
   window.on('closed', () => {
     window = null
   })
@@ -217,20 +311,8 @@ function stopChild() {
   })
 }
 
-function installRefererGuard() {
-  // The launch credential is a query parameter. A later https login must not receive it as Referer.
-  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    const headers = { ...details.requestHeaders }
-    for (const name of Object.keys(headers)) {
-      if (name.toLowerCase() !== 'referer') continue
-      headers[name] = stripTokenQuery(headers[name])
-    }
-    callback({ requestHeaders: headers })
-  })
-}
-
 function boot() {
-  installRefererGuard()
+  installSessionGuards()
   let port
   let bin
   try {

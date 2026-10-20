@@ -27,18 +27,33 @@ export function isLoopbackUrl(value) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1'
 }
 
+const SENSITIVE_QUERY = new Set([
+  'token',
+  'api_key',
+  'apikey',
+  'api-key',
+  'access_token',
+  'refresh_token',
+  'secret',
+  'password',
+])
+
 /**
- * Drop the launch-token query before a URL is used as a Referer.
- * The credential is only the `token` parameter. Path and origin stay.
+ * Drop credential query params before a URL is used as a Referer.
+ * Path and origin stay. Ordinary params stay.
  * @param {string} value
  * @returns {string}
  */
 export function stripTokenQuery(value) {
   try {
     const url = new URL(value)
-    if (!url.searchParams.has('token')) return value
-    url.searchParams.delete('token')
-    return url.href
+    let dropped = false
+    for (const name of [...url.searchParams.keys()]) {
+      if (!SENSITIVE_QUERY.has(name.toLowerCase())) continue
+      url.searchParams.delete(name)
+      dropped = true
+    }
+    return dropped ? url.href : value
   } catch {
     return value
   }
@@ -50,7 +65,7 @@ export function stripTokenQuery(value) {
  * @returns {string}
  */
 export function redact(text) {
-  return text.replace(/https?:\/\/\S+/g, (raw) => {
+  const urls = text.replace(/https?:\/\/\S+/g, (raw) => {
     try {
       const url = new URL(raw)
       return `${url.origin}/[redacted]`
@@ -58,6 +73,13 @@ export function redact(text) {
       return '[redacted-url]'
     }
   })
+  return urls
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, 'sk-[redacted]')
+    .replace(
+      /((?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password)\s*[=:]\s*)(['"]?)[^\s'"]+/gi,
+      '$1$2[redacted]',
+    )
 }
 
 /**

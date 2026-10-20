@@ -41,3 +41,17 @@ bin/dsh-linux
 ```
 
 Electron 38 and newer already opens a Wayland window when `XDG_SESSION_TYPE=wayland`. This Omarchy box is that case, on the NVIDIA card. A black window: quit, then `bin/dsh-linux --ozone-platform=x11`. `--disable-gpu` is the step after that, not the default. Node must be 24 or newer. This machine's Node 26 is inside the harness engine range (`^22.19.0 || >=24`). The published CLI package does not declare `engines`. The range lives on the private repo root.
+
+## Menu
+
+```sh
+bin/install-desktop.sh
+```
+
+That writes `~/.local/share/applications/dsh-linux.desktop` with absolute paths, links `~/.local/bin/dsh-linux`, and copies the icon into the hicolor theme. The icon is an original ring. It is not a DeepSeek logo.
+
+There is no AppImage. This shell needs system Node and the user's `~/.dsh`. Vendoring the harness into an image is a fork of the delivery, and this repo does not do that.
+
+## Keys
+
+The harness stores provider keys in its own file, mode `0600`, under `~/.dsh`. This shell does not open that file. Logs and error dialogs drop URLs down to an origin, plus `Bearer` values, `sk-` tokens, and `api_key=` style assignments. Crash reports are not uploaded. The main window stays on the loopback origin. Account sign-in still works: the page opens `about:blank`, then `location.replace`s the authorize URL in that sandboxed popup. Other web links open in the system browser.

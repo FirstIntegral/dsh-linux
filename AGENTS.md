@@ -16,9 +16,10 @@ Naming follows DeepSeek's published brand guidelines (`BRAND_GUIDELINES.md` in t
 
 ## Commands
 
-- Install: `npm install` (Node >= 24; this machine has Node 26)
-- Test: `npm test` (pure helpers in `src/ready.mjs`; no Electron)
+- Install: `npm install` (Node >= 24; this machine has Node 26). `scripts/postinstall.mjs` downloads Electron and the node-pty prebuild.
+- Test: `npm test` (pure helpers in `src/ready.mjs` and `src/nav.mjs`; no Electron)
 - Run: `bin/dsh-linux` (`--port` or `DSH_LINUX_PORT`, default 3080)
+- Menu: `bin/install-desktop.sh`
 
 ## Repo
 

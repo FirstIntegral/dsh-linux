@@ -21,23 +21,26 @@ test('only loopback http(s) may load', () => {
   assert.equal(isLoopbackUrl('not a url'), false)
 })
 
-test('referer keeps origin and drops only the token query', () => {
+test('referer drops credential query params and keeps the rest', () => {
   assert.equal(
     stripTokenQuery('http://127.0.0.1:3080/?token=secret'),
     'http://127.0.0.1:3080/',
   )
   assert.equal(
-    stripTokenQuery('http://127.0.0.1:3080/?a=1&token=secret'),
+    stripTokenQuery('http://127.0.0.1:3080/?a=1&token=secret&api_key=sk-abcdefgh'),
     'http://127.0.0.1:3080/?a=1',
   )
   assert.equal(stripTokenQuery('https://example.com/login'), 'https://example.com/login')
 })
 
-test('redact keeps origin only', () => {
+test('redact keeps origin only and hides key material', () => {
   assert.equal(
     redact('dsh web: http://127.0.0.1:3080/login?token=secret'),
     'dsh web: http://127.0.0.1:3080/[redacted]',
   )
+  assert.equal(redact('Authorization: Bearer sk-live-secret'), 'Authorization: Bearer [redacted]')
+  assert.equal(redact('using sk-abcdefghijklmnop now'), 'using sk-[redacted] now')
+  assert.equal(redact('DEEPSEEK_API_KEY=sk-abcdefgh'), 'DEEPSEEK_API_KEY=[redacted]')
 })
 
 test('port flag, env, default, and garbage', () => {
