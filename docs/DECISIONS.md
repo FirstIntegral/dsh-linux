@@ -30,3 +30,10 @@ Append an entry (date + decision + why + rejected alternatives) in the same turn
 
 - GitHub visibility becomes public at the user's request. A scan of the tree and history found no provider keys, only the redaction tests. `package.json` stays `"private": true`, so this is not an npm publish.
 - The icon stays the original dark tile, amber ring, and cream bead. Upstream's own badge, in `@deepseek-ai/dsh-skill-badge`, is a blue pill (`#4D6BFE`) with the letters dsh. Copying that art was rejected. The ring is not a stand-in for their logo, and it does not need to be.
+
+## 2026-11-10 Override nested undici, zod, MCP client, and fflate
+
+- Added npm overrides: `undici@8` 8.12.4, zod 4.6.7, `@modelcontextprotocol/client` 2.4.0, fflate 0.8.3. `@modelcontextprotocol/core` followed the client to 2.4.0.
+- Why: vuln-watch matched undici 8.11.2 (pinned by `@deepseek-ai/dsh-http-proxy` and `dsh-web-fetch-http`), nested zod 4.4.3, `@modelcontextprotocol/client` 2.2.0, and fflate 0.8.2 under `@deepseek-ai/libreoffice-kit`.
+- The undici override is version-scoped to 8.x so `@electron/get` can keep undici 7.30.1. A blanket `"undici": "8.12.4"` was rejected because it would force Electron's downloader onto 8.x.
+- `npm test` (10 tests) passed. `npm audit` and osv-scanner are clean, including dev.
